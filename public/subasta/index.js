@@ -1,4 +1,4 @@
-const DATE = new Date('05/14/2021 0:01 AM');
+const DATE = new Date('05/21/2021 0:01 AM');
 const DAYS = document.getElementById('days');
 const HOURS = document.getElementById('hours');
 const MINUTES = document.getElementById('minutes');
@@ -38,52 +38,55 @@ const up = 38;
 const ri = 39;
 const down = 40;
 
-const HOST = "http://localhost:9200/index.php?";
+const HOST = "http://localhost:9200/index.php?articleId=";
 let id = 1;
-let direction = HOST + id;
-console.log(direction);
+
+
 var requestOptions = {
     method: 'GET',
     redirect: 'follow'
-};
-fetch(direction, requestOptions)
-    .then(response => response.json())
-    .then(data => {
-        console.log(data)
+  };
 
-        //.catch(error => console.log('error', error))
-        //.then(res => res.json())
-        // .then(data => {
+request();
 
-        showArticle(counter, data);
-        loading.style.display = 'none';
-        buttonsClick(data);
-        keysChange(data);
+  function request(){
 
-        updateCountdown();
-        setInterval(updateCountdown, MILLISECONDS_OF_A_SECOND);
-        clickFastBid();
-        directBid();
+    let direction = HOST + id;
+
+    fetch(direction, requestOptions)
+        .then(response => response.json())
+        .then(data => { 
+
+            showArticle(data);
+            getStorage();
+
+            loading.style.display = 'none';
+            buttonsClick();
+            keysChange();
+
+            updateCountdown();
+            setInterval(updateCountdown, MILLISECONDS_OF_A_SECOND);
+            clickFastBid();
+            directBid();
     });
-
-function showArticle(counter, data) {
-    h3.textContent = data[counter].title;
-    img.src = data[counter].image;
+}
+function showArticle(data) {
+    h3.textContent = data.name;
+    img.src = data.image;
 
     description.innerHTML = `
-        <p id="pcategory"><strong>Categoría:</strong> ${data[counter].category}</p><br/>
-        <p id="pdescription"><strong>Descripción:</strong> ${data[counter].description}</p>
+        <p id="pdescription"><strong>Descripción:</strong> ${data.description}</p>
         `
     directPurchase(data);
     setCurrentBid();
 }
 
 function directPurchase(data) {
-    var price = Math.ceil((data[counter].price) / 14);
-    var purchasePrice = Math.ceil(data[counter].price + (data[counter].price * 0.14))
+    var price = Math.ceil((data.price) / 14);
+    var purchasePrice = Math.ceil(data.price + (data.price * 0.14))
     btnPurchase.textContent = `Compra por:\n ${purchasePrice}€`
     currentBid = price;
-    if (currentBid >= data[counter].price) {
+    if (currentBid >= data.price) {
         btnPurchase.syle.display = 'none';
     }
 }
@@ -115,34 +118,62 @@ function fastBid(button) {
     confirm();
 }
 
+let counterStorage = 1;
+
 function updateList() {
     let date = new Date().toLocaleDateString();
     let time = new Date().toLocaleTimeString();
-    var tdUser = document.createElement('td').textContent = "user";
-    var tdBid = document.createElement('td').textContent = currentBid;
-    var tdTime = document.createElement('td').textContent = time;
-    var tdDate = document.createElement('td').textContent = date;
-    let record = [tdUser, tdBid, tdTime, tdDate];
 
+    recordStorage = {
+        "user": "user",
+        "bid": currentBid,
+        "time": time,
+        "date": date
+    };
+    localStorage.setItem((id + "" + counterStorage), JSON.stringify(recordStorage));
+    counterStorage++;
     alert.classList.add('d-none');
-    bidlist.reverse();
-    bidlist.push(record);
-    bodyTableBids.innerHTML = "";
-    updateRecords(bidlist);
+    getStorage();
+
 }
 
-function updateRecords(bidlist) {
-    bidlist.reverse();
-    for (var records of bidlist) {
-        let row = document.createElement('tr')
-        for (var r of records) {
-            var td = document.createElement('td')
-            td.textContent = r;
-            row.appendChild(td)
+function getStorage(){
+    bodyTableBids.innerHTML = "";
+    for (var i = localStorage.length; i >= 0; i--){
+        let key = id + "" + i;
+        var local = JSON.parse(localStorage.getItem(key));
+        if(local != null){
+            
+            var tdUser = document.createElement('td')
+            let tdBid = document.createElement('td')
+            let tdTime = document.createElement('td')
+            let tdDate = document.createElement('td')
+            tdUser.textContent = local["user"];
+            tdBid.textContent = local["bid"];
+            tdTime.textContent = local["time"];
+            tdDate.textContent = local["date"];
+            let row = document.createElement('tr')
+            row.appendChild(tdUser);
+            row.appendChild(tdBid);
+            row.appendChild(tdTime);
+            row.appendChild(tdDate);
+            bodyTableBids.appendChild(row);
+            setCurrentBidStorage();
         }
-        bodyTableBids.appendChild(row);
+    }   
+}
+
+function setCurrentBidStorage(){
+    for(var i = 0; i<localStorage.length; i++){
+        let key = id + "" + i;
+        var local = JSON.parse(localStorage.getItem(key));
+        if(local != null){
+            currentBid = local["bid"];
+            console.log(currentBid);
+        }
     }
 }
+
 
 function directBid() {
     keysInput();
@@ -227,32 +258,31 @@ function buttonsClick(articles) {
     }
 }
 
-function rigth(articles) {
-    if (counter <= articles.length - 2) {
+function rigth() {
+   if(id < 4){
         counter++;
         id++;
-        showArticle(counter, articles);
-    }
+        request();
+   }
 }
 
-function left(articles) {
-    if (counter > 0) {
+function left() {
+   if (id > 1) {
         counter--;
         id--;
-        showArticle(counter, articles);
-    }
+        request();
+   }    
 }
 
-function keysChange(articles) {
-    var articles = articles;
+function keysChange() {
     document.onkeydown = (key) => {
 
         var pressKey = key.keyCode;
         if (pressKey == ri) {
-            rigth(articles);
+            rigth();
         }
         else if (pressKey == le) {
-            left(articles);
+            left();
         }
     }
 }
